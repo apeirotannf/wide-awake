@@ -60,7 +60,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // Blocks idle display and system sleep, dimming and the screensaver.
         // .userInitiated also keeps App Nap from delaying the timer below.
         activity = ProcessInfo.processInfo.beginActivity(options: [.idleDisplaySleepDisabled, .userInitiated],
-                                                         reason: "Doppio is active")
+                                                         reason: "Wide Awake is active")
         if minutes > 0 {
             let total = TimeInterval(minutes * 60)
             startDate = Date()
@@ -86,7 +86,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func update() {
-        item.button?.toolTip = isActive ? "Doppio is keeping your Mac awake" : "Doppio is off"
+        item.button?.toolTip = isActive ? "Wide Awake is keeping your Mac awake" : "Wide Awake is off"
         // Wide open when on, drooping to 35% as a timer runs out, shut when off.
         var target: CGFloat = isActive ? 1 : 0
         if isActive, let endDate {
@@ -138,7 +138,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func draw() {
         let (o, gaze) = (shown, gaze)
-        // Two tall cartoon eyes with brows, one per shot. The upper lid sweeps from a full oval (o = 1)
+        // Two tall cartoon eyes with brows. The upper lid sweeps from a full oval (o = 1)
         // down onto the lower lid (o = 0), and the brows relax with it.
         let image = NSImage(size: NSSize(width: 22, height: 18), flipped: false) { _ in
             // On a dark menu bar the eyes are filled with hollow pupils, so they read as white eyes, dark pupils.
@@ -180,7 +180,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             return true
         }
         image.isTemplate = true
-        image.accessibilityDescription = isActive ? "Doppio on" : "Doppio off"
+        image.accessibilityDescription = isActive ? "Wide Awake on" : "Wide Awake off"
         item.button?.image = image
     }
 
@@ -214,7 +214,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
                 SMAppService.mainApp.status == .enabled ? .on : .off
         }
         menu.addItem(.separator())
-        add("Quit Doppio", #selector(NSApplication.terminate), to: menu, key: "q").target = NSApp
+        add("Quit Wide Awake", #selector(NSApplication.terminate), to: menu, key: "q").target = NSApp
     }
 
     @discardableResult

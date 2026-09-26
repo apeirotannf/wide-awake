@@ -3,15 +3,15 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleExecutable</key>
-	<string>Doppio</string>
+	<string>WideAwake</string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>CFBundleIconName</key>
 	<string>AppIcon</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.github.apeirotannf.doppio</string>
+	<string>com.github.apeirotannf.wideawake</string>
 	<key>CFBundleName</key>
-	<string>Doppio</string>
+	<string>Wide Awake</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

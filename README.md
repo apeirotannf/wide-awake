@@ -1,6 +1,6 @@
-# Doppio
+# Wide Awake
 
-A tiny menu bar app that keeps your Mac awake. A clone of [Caffeine](https://www.caffeine-app.net/en/): *doppio* is Italian for a double shot, and for a double.
+A tiny menu bar app that keeps your Mac awake, shown as a pair of eyes. Inspired by [Caffeine](https://www.caffeine-app.net/en/).
 
 - **Click** the eyes in the menu bar to switch it on or off. Open eyes mean your Mac stays awake. Closed eyes mean it can sleep.
 - On a timer, the eyes get sleepy as time runs out. While awake, they follow your pointer. Reduce Motion keeps them still.
@@ -16,15 +16,15 @@ Runs on macOS 11 or newer, on Apple silicon and Intel. "Start at Login" appears 
 Needs Xcode 26 or newer, for the Liquid Glass icon.
 
 ```sh
-./build.sh          # makes build/Doppio.app (Apple silicon + Intel)
+./build.sh          # makes "build/Wide Awake.app" (Apple silicon + Intel)
 ./check.sh          # builds, switches it on, checks macOS sees the sleep block
 ```
 
-Then drag `build/Doppio.app` into `/Applications`.
+Then drag `build/Wide Awake.app` into `/Applications`.
 
 ## Copying to another Mac
 
-Copy `Doppio.app` over with a USB drive or file sharing and it opens right away.
+Copy `Wide Awake.app` over with a USB drive or file sharing and it opens right away.
 
 If it arrives by AirDrop, email or download, macOS warns the first time. The app is signed ad hoc, not notarized by Apple. To open it anyway:
 
