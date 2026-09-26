@@ -6,9 +6,13 @@ A tiny menu bar app that keeps your Mac awake. A clone of [Caffeine](https://www
 - **Right-click** (or ⌘/⌃-click) for the menu: run it for a set time, pick a default duration, turn on at launch, start at login.
 - While on, it blocks idle sleep, screen dimming and the screensaver.
 
-No dependencies. One Swift file, built with Xcode's command line tools. Needs macOS 13 or newer.
+No dependencies. One Swift file plus an icon made in Icon Composer (`AppIcon.icon`).
+
+Runs on macOS 11 or newer, on Apple silicon and Intel. "Start at Login" appears on macOS 13 and newer.
 
 ## Build
+
+Needs Xcode 26 or newer, for the Liquid Glass icon.
 
 ```sh
 ./build.sh          # makes build/Doppio.app (Apple silicon + Intel)
@@ -17,4 +21,11 @@ No dependencies. One Swift file, built with Xcode's command line tools. Needs ma
 
 Then drag `build/Doppio.app` into `/Applications`.
 
-The app is signed ad hoc, not notarized. On another Mac, right-click it and choose **Open** the first time.
+## Copying to another Mac
+
+Copy `Doppio.app` over with a USB drive or file sharing and it opens right away.
+
+If it arrives by AirDrop, email or download, macOS warns the first time. The app is signed ad hoc, not notarized by Apple. To open it anyway:
+
+- **macOS 15 and newer:** open it once, then go to System Settings → Privacy & Security and click **Open Anyway**.
+- **macOS 11 to 14:** right-click the app and choose **Open**.

@@ -1,13 +1,12 @@
 import Cocoa
-import IOKit.pwr_mgt
 import ServiceManagement
 
-@MainActor
+@main
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
     let menu = NSMenu()
     let defaults = UserDefaults.standard
-    var assertion: IOPMAssertionID = 0
+    var activity: NSObjectProtocol?
     var timer: Timer?
     var endDate: Date?
 
@@ -15,8 +14,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     let durations = [("Indefinitely", 0), ("5 minutes", 5), ("10 minutes", 10), ("15 minutes", 15),
                      ("30 minutes", 30), ("1 hour", 60), ("2 hours", 120), ("5 hours", 300)]
 
-    var isActive: Bool { assertion != 0 }
+    var isActive: Bool { activity != nil }
     var defaultMinutes: Int { defaults.integer(forKey: "defaultMinutes") }
+
+    static func main() {
+        let delegate = AppDelegate()
+        NSApplication.shared.delegate = delegate
+        NSApplication.shared.run()
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         item.button?.target = self
@@ -46,24 +51,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func activate(minutes: Int) {
         deactivate()
-        // Display-sleep assertion also blocks idle system sleep, dimming and the screensaver.
-        if IOPMAssertionCreateWithName(kIOPMAssertionTypePreventUserIdleDisplaySleep as CFString,
-                                       IOPMAssertionLevel(kIOPMAssertionLevelOn),
-                                       "Doppio is active" as CFString, &assertion) != kIOReturnSuccess {
-            assertion = 0
-        }
-        if isActive && minutes > 0 {
+        // Blocks idle display and system sleep, dimming and the screensaver.
+        // .userInitiated also keeps App Nap from delaying the timer below.
+        activity = ProcessInfo.processInfo.beginActivity(options: [.idleDisplaySleepDisabled, .userInitiated],
+                                                         reason: "Doppio is active")
+        if minutes > 0 {
             endDate = Date(timeIntervalSinceNow: TimeInterval(minutes * 60))
-            timer = Timer.scheduledTimer(withTimeInterval: TimeInterval(minutes * 60), repeats: false) { [weak self] _ in
-                MainActor.assumeIsolated { self?.deactivate() }
-            }
+            timer = Timer.scheduledTimer(timeInterval: TimeInterval(minutes * 60), target: self,
+                                         selector: #selector(turnOff), userInfo: nil, repeats: false)
         }
         update()
     }
 
     func deactivate() {
-        if isActive { IOPMAssertionRelease(assertion) }
-        assertion = 0
+        if let activity { ProcessInfo.processInfo.endActivity(activity) }
+        activity = nil
         timer?.invalidate()
         timer = nil
         endDate = nil
@@ -79,7 +81,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func menuNeedsUpdate(_ menu: NSMenu) {
         menu.removeAllItems()
         if isActive {
-            menu.addItem(withTitle: endDate.map { "On until \($0.formatted(date: .omitted, time: .shortened))" } ?? "On indefinitely",
+            menu.addItem(withTitle: endDate.map { "On until \(DateFormatter.localizedString(from: $0, dateStyle: .none, timeStyle: .short))" } ?? "On indefinitely",
                          action: nil, keyEquivalent: "")
             add("Turn Off", #selector(turnOff), to: menu)
             menu.addItem(.separator())
@@ -101,8 +103,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.setSubmenu(defaultMenu, for: menu.addItem(withTitle: "Default Duration", action: nil, keyEquivalent: ""))
         add("Activate at Launch", #selector(toggleActivateOnLaunch), to: menu).state =
             defaults.bool(forKey: "activateOnLaunch") ? .on : .off
-        add("Start at Login", #selector(toggleLogin), to: menu).state =
-            SMAppService.mainApp.status == .enabled ? .on : .off
+        if #available(macOS 13, *) {
+            add("Start at Login", #selector(toggleLogin), to: menu).state =
+                SMAppService.mainApp.status == .enabled ? .on : .off
+        }
         menu.addItem(.separator())
         add("Quit Doppio", #selector(NSApplication.terminate), to: menu, key: "q").target = NSApp
     }
@@ -121,6 +125,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         defaults.set(!defaults.bool(forKey: "activateOnLaunch"), forKey: "activateOnLaunch")
     }
 
+    @available(macOS 13, *)
     @objc func toggleLogin() {
         do {
             if SMAppService.mainApp.status == .enabled {
@@ -132,10 +137,4 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             NSAlert(error: error).runModal()
         }
     }
-}
-
-MainActor.assumeIsolated {
-    let delegate = AppDelegate()
-    NSApplication.shared.delegate = delegate
-    NSApplication.shared.run()
 }
