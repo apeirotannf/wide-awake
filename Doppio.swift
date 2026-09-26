@@ -8,7 +8,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     let defaults = UserDefaults.standard
     var activity: NSObjectProtocol?
     var timer: Timer?
+    var startDate = Date()
     var endDate: Date?
+    // Menu bar eyes: how open they are now (0 shut, 1 wide), the animation between states, and where they look.
+    var shown: CGFloat = 0, from: CGFloat = 0, to: CGFloat = 0, animationStart = Date()
+    var animation: Timer?
+    var gaze = CGPoint.zero
+    var mouseMonitor: Any?
 
     // Minutes; 0 means no limit.
     let durations = [("Indefinitely", 0), ("5 minutes", 5), ("10 minutes", 10), ("15 minutes", 15),
@@ -56,9 +62,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         activity = ProcessInfo.processInfo.beginActivity(options: [.idleDisplaySleepDisabled, .userInitiated],
                                                          reason: "Doppio is active")
         if minutes > 0 {
-            endDate = Date(timeIntervalSinceNow: TimeInterval(minutes * 60))
-            timer = Timer.scheduledTimer(timeInterval: TimeInterval(minutes * 60), target: self,
-                                         selector: #selector(turnOff), userInfo: nil, repeats: false)
+            let total = TimeInterval(minutes * 60)
+            startDate = Date()
+            endDate = Date(timeIntervalSinceNow: total)
+            // 20 ticks let the eyes droop as time runs out. The last one lands on endDate.
+            timer = Timer.scheduledTimer(timeInterval: total / 20, target: self,
+                                         selector: #selector(tick), userInfo: nil, repeats: true)
         }
         update()
     }
@@ -72,10 +81,107 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         update()
     }
 
+    @objc func tick() {
+        if let endDate, endDate.timeIntervalSinceNow < 1 { deactivate() } else { update() }
+    }
+
     func update() {
-        item.button?.image = NSImage(systemSymbolName: isActive ? "cup.and.saucer.fill" : "cup.and.saucer",
-                                     accessibilityDescription: isActive ? "Doppio on" : "Doppio off")
         item.button?.toolTip = isActive ? "Doppio is keeping your Mac awake" : "Doppio is off"
+        // Wide open when on, drooping to 35% as a timer runs out, shut when off.
+        var target: CGFloat = isActive ? 1 : 0
+        if isActive, let endDate {
+            target = 0.35 + 0.65 * CGFloat(max(0, endDate.timeIntervalSinceNow / endDate.timeIntervalSince(startDate)))
+        }
+        let still = NSWorkspace.shared.accessibilityDisplayShouldReduceMotion
+        watchMouse(isActive && !still)
+        animation?.invalidate()
+        if still || shown == target {
+            shown = target
+            draw()
+        } else {
+            (from, to, animationStart) = (shown, target, Date())
+            animation = Timer.scheduledTimer(timeInterval: 1.0 / 60, target: self,
+                                             selector: #selector(step), userInfo: nil, repeats: true)
+        }
+    }
+
+    @objc func step() {
+        let t = min(Date().timeIntervalSince(animationStart) / 0.25, 1)
+        shown = from + (to - from) * CGFloat(t * t * (3 - 2 * t))
+        draw()
+        if t == 1 { animation?.invalidate() }
+    }
+
+    func watchMouse(_ on: Bool) {
+        if on, mouseMonitor == nil {
+            mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged]) { [weak self] _ in
+                self?.look()
+            }
+            look()
+        } else if !on, let monitor = mouseMonitor {
+            NSEvent.removeMonitor(monitor)
+            mouseMonitor = nil
+        }
+    }
+
+    // Pupils glance toward the pointer, further the further away it is. Quarter-point steps limit redraws.
+    func look() {
+        guard let icon = item.button?.window?.frame else { return }
+        let dx = NSEvent.mouseLocation.x - icon.midX, dy = NSEvent.mouseLocation.y - icon.midY
+        let d = max(hypot(dx, dy), 1), reach = min(d / 200, 1) * 1.2
+        let p = CGPoint(x: (dx / d * reach * 4).rounded() / 4, y: (dy / d * reach * 4).rounded() / 4)
+        if p != gaze {
+            gaze = p
+            draw()
+        }
+    }
+
+    func draw() {
+        let (o, gaze) = (shown, gaze)
+        // Two tall cartoon eyes with brows, one per shot. The upper lid sweeps from a full oval (o = 1)
+        // down onto the lower lid (o = 0), and the brows relax with it.
+        let image = NSImage(size: NSSize(width: 22, height: 18), flipped: false) { _ in
+            // On a dark menu bar the eyes are filled with hollow pupils, so they read as white eyes, dark pupils.
+            let dark = NSAppearance.currentDrawing().bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+            for (cx, side) in [(6.6, -1.0), (15.4, 1.0)] {
+                let cy = 7.2, rx = 3.0, ry = 4.3
+                let lower = -(ry * o + rx * 0.8 * (1 - o)) * 4 / 3, upper = lower + (ry * 4 / 3 - lower) * o
+                let eye = NSBezierPath()
+                eye.move(to: NSPoint(x: cx - rx, y: cy))
+                eye.curve(to: NSPoint(x: cx + rx, y: cy), controlPoint1: NSPoint(x: cx - rx, y: cy + upper),
+                          controlPoint2: NSPoint(x: cx + rx, y: cy + upper))
+                eye.curve(to: NSPoint(x: cx - rx, y: cy), controlPoint1: NSPoint(x: cx + rx, y: cy + lower),
+                          controlPoint2: NSPoint(x: cx - rx, y: cy + lower))
+                let by = cy + ry + 0.9 + 1.4 * o, arch = (0.3 + 1.1 * o) * 1.3
+                let brow = NSBezierPath()
+                brow.move(to: NSPoint(x: cx + side * 3.4, y: by))
+                brow.curve(to: NSPoint(x: cx - side * 2.4, y: by + 0.5 * o), controlPoint1: NSPoint(x: cx + side * 1.8, y: by + arch),
+                           controlPoint2: NSPoint(x: cx - side * 0.8, y: by + arch))
+                for path in [eye, brow] {
+                    path.lineWidth = 1.3
+                    path.lineCapStyle = .round
+                    path.lineJoinStyle = .round
+                    path.stroke()
+                }
+                let p = NSPoint(x: cx + gaze.x, y: cy + gaze.y)
+                let pupil = NSBezierPath(ovalIn: NSRect(x: p.x - 2, y: p.y - 2, width: 4, height: 4))
+                let glint = NSBezierPath(ovalIn: NSRect(x: p.x + 0.35, y: p.y + 0.35, width: 1.4, height: 1.4))
+                // Even-odd fill cuts the hollow part: eye minus pupil on dark bars, pupil minus glint on light ones.
+                let shape = NSBezierPath()
+                shape.append(dark ? eye : pupil)
+                shape.append(dark ? pupil : glint)
+                shape.windingRule = .evenOdd
+                NSGraphicsContext.saveGraphicsState()
+                eye.addClip()
+                shape.fill()
+                if dark { glint.fill() }
+                NSGraphicsContext.restoreGraphicsState()
+            }
+            return true
+        }
+        image.isTemplate = true
+        image.accessibilityDescription = isActive ? "Doppio on" : "Doppio off"
+        item.button?.image = image
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
