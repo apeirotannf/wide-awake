@@ -1,3 +1,5 @@
+<p align="center"><img src="icon.png" width="128" alt="Wide Awake app icon: two glowing eyes with brows on a night sky"></p>
+
 # Wide Awake
 
 A tiny menu bar app that keeps your Mac awake, shown as a pair of eyes. Inspired by [Caffeine](https://www.caffeine-app.net/en/).
