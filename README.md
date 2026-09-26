@@ -2,6 +2,8 @@
 
 A tiny menu bar app that keeps your Mac awake, shown as a pair of eyes. Inspired by [Caffeine](https://www.caffeine-app.net/en/).
 
+<p align="center"><img src="eyes.png" width="474" alt="The menu bar eyes awake, sleepy and off, on a dark and a light menu bar"></p>
+
 - **Click** the eyes in the menu bar to switch it on or off. Open eyes mean your Mac stays awake. Closed eyes mean it can sleep.
 - On a timer, the eyes get sleepy as time runs out. While awake, they follow your pointer. Reduce Motion keeps them still.
 - **Right-click** (or ⌘/⌃-click) for the menu: run it for a set time, pick a default duration, turn on at launch, start at login.
