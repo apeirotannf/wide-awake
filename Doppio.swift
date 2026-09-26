@@ -49,7 +49,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         // Display-sleep assertion also blocks idle system sleep, dimming and the screensaver.
         if IOPMAssertionCreateWithName(kIOPMAssertionTypePreventUserIdleDisplaySleep as CFString,
                                        IOPMAssertionLevel(kIOPMAssertionLevelOn),
-                                       "Caffeine is active" as CFString, &assertion) != kIOReturnSuccess {
+                                       "Doppio is active" as CFString, &assertion) != kIOReturnSuccess {
             assertion = 0
         }
         if isActive && minutes > 0 {
@@ -72,8 +72,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func update() {
         item.button?.image = NSImage(systemSymbolName: isActive ? "cup.and.saucer.fill" : "cup.and.saucer",
-                                     accessibilityDescription: isActive ? "Caffeine on" : "Caffeine off")
-        item.button?.toolTip = isActive ? "Caffeine is keeping your Mac awake" : "Caffeine is off"
+                                     accessibilityDescription: isActive ? "Doppio on" : "Doppio off")
+        item.button?.toolTip = isActive ? "Doppio is keeping your Mac awake" : "Doppio is off"
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
@@ -104,7 +104,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         add("Start at Login", #selector(toggleLogin), to: menu).state =
             SMAppService.mainApp.status == .enabled ? .on : .off
         menu.addItem(.separator())
-        add("Quit Caffeine", #selector(NSApplication.terminate), to: menu, key: "q").target = NSApp
+        add("Quit Doppio", #selector(NSApplication.terminate), to: menu, key: "q").target = NSApp
     }
 
     @discardableResult
